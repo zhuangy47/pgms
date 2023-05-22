@@ -1,0 +1,33 @@
+mainmodule hello {
+  readonly CProxy_Main mainProxy;
+  readonly int nElements;
+
+  readonly float values[3][3];
+
+  mainchare Main {
+    entry Main(CkArgMsg *m);
+    entry void run() {
+      atomic { arr.doTasks();}
+      when done(){}; 
+    /*
+      atomic { 
+        printTimes; 
+        arr.nodeqTasks();}
+      when done(){};
+      atomic {
+        print times ; 
+        arr.taskqTasks(); 
+        }
+      when done() {};
+   */
+    ckout <<"all experiments done. \n";
+    CkExit();
+}
+    entry void done(void);
+  };
+
+  array [1D] Hello {
+    entry Hello(void);
+    entry void SayHi(int hiNo);
+  };        	
+};
