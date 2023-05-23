@@ -1,0 +1,17 @@
+mainmodule hello {
+  readonly CProxy_Main mainProxy;
+  readonly int totalSends;
+  readonly int sendBatch;
+
+  mainchare Main {
+    entry Main(CkArgMsg *m);
+    entry [reductiontarget] void done(void);
+  };
+
+  array [1D] Hello {
+    entry Hello(void);
+    entry [threaded] void startSends(void);
+    entry [aggregate(numDimensions:1, maxItems:1900)] void ping(int payload);
+    entry void ack(void); 
+  };        	
+};
