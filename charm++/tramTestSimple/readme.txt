@@ -8,7 +8,7 @@ PE 1 waits for receipt of totalSends messages, and then responds with a single a
 Every sendBatch messages, the sender thread yields to allow progress of the library. (here, it may be unnecessary, but its good
 to have it for better illustration via projections.
 
-I used totalSends = 200,000 and sendBatch = 500 . The buffer size is 1900 (specified in the .ci file.. which is a pity, since I cannot vary it without recompilation).
+I used totalSends = 20,000 and sendBatch = 500 . The buffer size is 1900 (specified in the .ci file.. which is a pity, since I cannot vary it without recompilation).
 You can try with other sizes.
 
 3 runs I (Sanjay) did were:

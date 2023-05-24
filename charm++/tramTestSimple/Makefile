@@ -1,6 +1,6 @@
 -include ../../common.mk
-#CHARMC=/Users/kale/software/taskqCharm/charm/bin/charmc $(OPTS)
-CHARMC=/Users/kale/software/charm/bin/charmc $(OPTS)
+CHARMC=/Users/kale/software/taskqCharm/charm/bin/charmc $(OPTS)
+#CHARMC=/Users/kale/software/charm/bin/charmc $(OPTS)
 
 OBJS = tramTest1.o
 

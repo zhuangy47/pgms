@@ -11,6 +11,7 @@ mainmodule hello {
   array [1D] Hello {
     entry Hello(void);
     entry [threaded] void startSends(void);
+    entry void startSendsNoULT(void);
     entry [aggregate(numDimensions:1, maxItems:1900)] void ping(int payload);
     entry void ack(void); 
   };        	

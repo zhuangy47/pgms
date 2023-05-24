@@ -41,27 +41,27 @@ public:
   void done(void)
   {
   
-    arr[0].startSends();
+    arr[0].startSendsNoULT();
   };
 };
 
 /*array [1D]*/
 class Hello : public CBase_Hello 
 {
-int count;
+  int count, countSent;
 public:
   Hello()
   {
     CkPrintf("[%d] Hello %d created\n", CkMyPe(), thisIndex);
     count = 0;
+    countSent = 0;
     CkCallback cb(CkReductionTarget(Main, done), mainProxy);
     contribute(cb);
-}
+  }
   Hello(CkMigrateMessage *m) {}
   
   void startSends()
   {
-   if (thisIndex == 0) {
      for (int i = 0; i < totalSends; i += sendBatch) {
       for (int j = 0; j < sendBatch; ++j)
 	{ 
@@ -69,10 +69,20 @@ public:
 	}
 //      CkPrintf("Batch upto % d sent. Yielding\n", i);
       CthYield(); 
-   }
-    CkPrintf("[%d] done sending from element %d\n", CkMyPe(),  thisIndex);
+     }
+     // CkPrintf("[%d] done sending from element %d\n", CkMyPe(),  thisIndex);
   }
-}
+
+  void startSendsNoULT()
+  {
+    for (int j = 0; j < sendBatch; ++j)
+	{ 
+	thisProxy[1].ping(countSent+j); 
+	}
+      countSent+= sendBatch;
+      if (countSent < totalSends) thisProxy[0].startSendsNoULT(); 
+      //      else CkPrintf("[%d] done sending from element %d\n", CkMyPe(),  thisIndex);
+ }
 
   void ping(int payload) {
 	if (++count == totalSends) thisProxy[0].ack();
