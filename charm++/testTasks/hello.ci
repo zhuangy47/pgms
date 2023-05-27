@@ -1,15 +1,54 @@
 mainmodule hello {
   readonly CProxy_Main mainProxy;
-  readonly int nElements;
+  readonly int numChares;
+  readonly CProxy_NodeTasks nodeMgr;
+  readonly double baseLoad;
+  readonly double maxLoad;
 
-  readonly float values[3][3];
 
+  message TaskMsg;
+  
   mainchare Main {
     entry Main(CkArgMsg *m);
     entry void run() {
-      atomic { arr.doTasks();}
-      when done(){}; 
-    /*
+      atomic { t0 = CkTimer(); taskRunner.doTasks();}
+      when done(){
+       atomic {
+         t1 = CkTimer(); 
+         ckout << "inline imbalanced tasks took " << t1 - t0 << "seconds" << endl;
+	 t0 = t1; 
+       }
+      } 
+      atomic { t0 = CkTimer(); taskRunner.fireNodeTasks();}
+      when done(){
+       atomic {
+         t1 = CkTimer(); 
+         ckout << "NodeGroup Method took " << t1 - t0 << "seconds" << endl;
+	 t0 = t1; 
+       }
+       }
+
+      atomic {ckout <<"all experiments done. \n";
+             CkExit();
+	 }
+}
+    entry [reductiontarget] void done(void);
+  };
+
+nodegroup NodeTasks {
+ entry NodeTasks();
+ entry void doNodeTask(TaskMsg *m);
+}
+
+  array [1D] Hello {
+    entry Hello(void);
+    entry void doTasks();
+    entry void fireNodeTasks();
+    entry void nodeTasksCompleted();
+  };        	
+};
+
+   /*
       atomic { 
         printTimes; 
         arr.nodeqTasks();}
@@ -20,14 +59,4 @@ mainmodule hello {
         }
       when done() {};
    */
-    ckout <<"all experiments done. \n";
-    CkExit();
-}
-    entry void done(void);
-  };
 
-  array [1D] Hello {
-    entry Hello(void);
-    entry void SayHi(int hiNo);
-  };        	
-};

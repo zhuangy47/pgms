@@ -1,12 +1,13 @@
--include ../../common.mk
-CHARMC=../../../bin/charmc $(OPTS)
+#-include ../../common.mk
+#CHARMC=../../../bin/charmc $(OPTS)
+CHARMC=/Users/kale/software/taskqCharm/charm/bin/charmc $(OPTS)
 
 OBJS = hello.o
 
 all: hello
 
 hello: $(OBJS)
-	$(CHARMC) -language charm++ -o hello $(OBJS)
+	$(CHARMC) -language charm++ -tracemode projections -o hello $(OBJS)
 
 hello.decl.h: hello.ci
 	$(CHARMC)  hello.ci
