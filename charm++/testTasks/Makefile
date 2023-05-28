@@ -1,6 +1,7 @@
 #-include ../../common.mk
 #CHARMC=../../../bin/charmc $(OPTS)
-CHARMC=/Users/kale/software/taskqCharm/charm/bin/charmc $(OPTS)
+#CHARMC=/Users/kale/software/taskqCharm/charm/bin/charmc $(OPTS)
+#let us get CHARM from the environment.. to avoid merge issues
 
 OBJS = hello.o
 
