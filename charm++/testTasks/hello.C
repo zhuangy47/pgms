@@ -26,7 +26,7 @@ class Main : public CBase_Main
 	maxLoad = 0.000001 *atoi(m->argv[2]);
 	tasksPerChare = atoi(m->argv[3]);
     }
-    else CkAbort("3arguments needed: baseLoad, maxLoad, tasksPerChare\n");
+    else CkAbort("3 arguments needed: baseLoad, maxLoad, tasksPerChare\n");
 
     ckout << "baseload: " << baseLoad << "maxLoad: " << maxLoad << ", tasksPerChare:" << tasksPerChare << endl;
     delete m;
@@ -105,7 +105,7 @@ class NodeTasks : public CBase_NodeTasks
 
 struct ConverseTaskMsg {
   char converseHdr[CmiMsgHeaderSizeBytes]; // for system use
-  int numTasks;
+  int numTasks; // unused, as of now. 
   int loadLow;
   int loadHigh;
   SyncCB * sync;
