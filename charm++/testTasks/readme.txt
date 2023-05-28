@@ -1,6 +1,8 @@
 
+needs a build with task queue (steal queue) enabled. I.e. --enable-task-queue in the build command/
+
 Program to illustrarte ways of running tasks.
-Use only on smp or multicore version.
+Use only on smp or multicore build with tracing enabled.
 Also, designed for use with only one logical node. so, do not use charmrun.
 3 parameters: baseLoad, maxLoad, tasksPerChare.
 run as: hello +p5 10 100 4 , to create 10 chares (2*numpes), each firing 4 chares
