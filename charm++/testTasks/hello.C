@@ -165,7 +165,7 @@ class Hello : public CBase_Hello
   SyncCB * s;
  Hello()
   {
-    CkPrintf("[%d] Client %d created\n", CkMyPe(), thisIndex);
+//    CkPrintf("[%d] Client %d created\n", CkMyPe(), thisIndex);
   }
 
   Hello(CkMigrateMessage *m) {}
