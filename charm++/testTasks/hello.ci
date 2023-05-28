@@ -1,37 +1,40 @@
 mainmodule hello {
+  readonly int tasksPerChare;
   readonly CProxy_Main mainProxy;
   readonly int numChares;
   readonly CProxy_NodeTasks nodeMgr;
   readonly double baseLoad;
   readonly double maxLoad;
-
+  readonly int taskEventID;
 
   message TaskMsg;
+
+  initproc taskHandlerInitcall();
   
   mainchare Main {
     entry Main(CkArgMsg *m);
     entry void run() {
       atomic { t0 = CkTimer(); taskRunner.doTasks();}
-      when done(){
+      when done(){}
        atomic {
          t1 = CkTimer(); 
-         ckout << "inline imbalanced tasks took " << t1 - t0 << "seconds" << endl;
-	 t0 = t1; 
-       }
-      } 
-      atomic { t0 = CkTimer(); taskRunner.fireNodeTasks();}
-      when done(){
-       atomic {
-         t1 = CkTimer(); 
-         ckout << "NodeGroup Method took " << t1 - t0 << "seconds" << endl;
-	 t0 = t1; 
-       }
-       }
-
-      atomic {ckout <<"all experiments done. \n";
-             CkExit();
+         taskRunner.fireNodeTasks();
 	 }
-}
+      when done(){}
+      atomic {
+         t2 = CkTimer();
+         ckout << "starting fireViaTaskQ" << endl;
+	 taskRunner.fireViaTaskQ();
+	 }
+       when done() {}
+       atomic {	     
+         t3 = CkTimer();  
+         ckout << "inline imbalanced tasks took " << t1 - t0 << "seconds" << endl;
+	 ckout << "NodeGroup Method took " << t2 - t1 << "seconds" << endl;
+	 ckout << "TaskQueue Method took " << t3 - t2 << "seconds" << endl;
+         CkExit();
+	}
+     }
     entry [reductiontarget] void done(void);
   };
 
@@ -45,18 +48,8 @@ nodegroup NodeTasks {
     entry void doTasks();
     entry void fireNodeTasks();
     entry void nodeTasksCompleted();
+    entry void fireViaTaskQ();
+    entry void taskQTasksCompleted();
   };        	
 };
-
-   /*
-      atomic { 
-        printTimes; 
-        arr.nodeqTasks();}
-      when done(){};
-      atomic {
-        print times ; 
-        arr.taskqTasks(); 
-        }
-      when done() {};
-   */
 
