@@ -11,7 +11,7 @@ mainmodule tasksAndRing {
 
   array [1D] TasksAndRing {
     entry TasksAndRing(void);
-    entry void forwardRing();
+    entry [expedited] void forwardRing();
     entry void startTasks();
    entry void tasksCompleted();
     entry [reductiontarget] void done(void);
