@@ -29,7 +29,7 @@ class Main : public CBase_Main
     numChares= 2* CkNumPes(); // 2 chares on each PE. 
     mainProxy = thisProxy;
     taskRunner = CProxy_TasksAndRing::ckNew(numChares);
-    taskRunner.startTasks();
+    //    taskRunner.startTasks();
   };
  };
 
@@ -46,7 +46,7 @@ struct ConverseTaskMsg {
 void taskHandler(void *m1)
 {
   ConverseTaskMsg * m = (ConverseTaskMsg *) m1;
-  ckout << "in taskHandler"  << m->num << endl;
+  //  ckout << "in taskHandler"  << m->num << endl;
   if (m->num <2 ) // There is only 1 task. Do it.
     {
       SyncCB * s =  m->sync;
@@ -56,7 +56,6 @@ void taskHandler(void *m1)
     }
   else
     { // fire 2 tasks for m->num -1 and m->num - 2 
-      ckout << "i the else clause to fire recursive subtasks" << endl;
       ConverseTaskMsg * m2 = (ConverseTaskMsg *) CmiAlloc(sizeof(ConverseTaskMsg)) ;
       m2->num = m->num - 2;
       m2->sync = m->sync;
@@ -73,7 +72,6 @@ void taskHandler(void *m1)
 void taskHandlerInitcall()
 // Register taskHandler as a  converse Handler
 {
-  ckout << "in initcall" <<endl;
   taskHandlerIndex = CmiRegisterHandler(taskHandler);
 }
 
@@ -88,6 +86,7 @@ class TasksAndRing : public CBase_TasksAndRing
   int nextIndex;
   SyncCB * s;
   int allTasksDone = 0;
+  double lastTime;
   TasksAndRing()
   {
     CkPrintf("[%d] Client %d created\n", CkMyPe(), thisIndex);
@@ -95,6 +94,7 @@ class TasksAndRing : public CBase_TasksAndRing
     allTasksDone = 0;
     nextIndex = thisIndex +1;
     if (nextIndex >= numChares) nextIndex = 0;
+    lastTime = CkTimer();
     if (0 == thisIndex) thisProxy[nextIndex].forwardRing();
   }
 
@@ -107,15 +107,18 @@ class TasksAndRing : public CBase_TasksAndRing
   void forwardRing()
   {
     count++;
-    ckout << thisIndex <<  ": in forwardring " << ":count=" << count << endl;
+    if (0 == (count % 16) && (0 == thisIndex)) {
+      double now = CkTimer();
+      ckout << "[0]. completed " << count <<
+	"rounds. Time for last 16 rounds: " << (now - lastTime)*1000000.0 << " microseconds"<< endl;
+      lastTime = now;
+      if (count == 800) thisProxy.startTasks();
+    }
     if ( (0 == thisIndex) &&  (allTasksDone==1) ) 
       {	ckout << thisIndex << ": numer of rings completed is : " << count << "allTasksDone:"<< allTasksDone << endl;
 	CkExit();
       }
-    else
-      { ckout << thisIndex << ": forwarding to " << nextIndex << endl;
-      thisProxy[nextIndex].forwardRing();
-      }
+    else thisProxy[nextIndex].forwardRing();
   }    
 
  void done() {
@@ -124,8 +127,7 @@ class TasksAndRing : public CBase_TasksAndRing
   }
 
  void startTasks()
- { // for now, just do the work inline
-   int r = thisIndex;
+ { 
    CkCallback cb(CkIndex_TasksAndRing::tasksCompleted() , thisProxy[thisIndex]);
    s = new SyncCB(cb,fibmax);
    for (int i=0; i<fibmax; i++) 
@@ -135,26 +137,9 @@ class TasksAndRing : public CBase_TasksAndRing
       m2->sync = s ;
       CmiSetHandler(m2, taskHandlerIndex);
       CsdTaskEnqueue(m2); // ***** fire task
-     }   
-   ckout << thisIndex << ": in startTasks. started them" << endl;
-
+     }
  }
 
- /*
-  void fireViaTaskQ()
-  {
-    CkCallback cb(CkIndex_TaskAndRing::taskQTasksCompleted() , thisProxy[thisIndex]);
-    s = new SyncCB( cb, 1); // just firing 1 task, but it will recursively fire more. 
-    ConverseTaskMsg * msg = (ConverseTaskMsg *) CmiAlloc(sizeof(ConverseTaskMsg)) ;
-    msg->loadLow = tasksPerChare*thisIndex;
-    msg->loadHigh = msg->loadLow+ tasksPerChare -1; // inclusive range
-    msg->sync = s; //  the converse handler wil do cb.send.
-    msg->numTasks = tasksPerChare; // numTasks is not needed in this formulation
-    CmiSetHandler(msg, taskHandlerIndex);
-    // firing 1 task, which will be recursivelu subdivided to tasksPerchare real tasks
-    CsdTaskEnqueue(msg);
-  }
- */
   void tasksCompleted()
   {
     ckout << thisIndex << ": in tasksCompled " << endl;
