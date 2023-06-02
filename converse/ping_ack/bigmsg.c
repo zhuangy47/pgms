@@ -6,11 +6,14 @@
 CpvDeclare(int, bigmsg_index);
 CpvDeclare(int, recv_count);
 
-#define CmiMsgHeaderSizeInts \
-  ((CmiMsgHeaderSizeBytes+sizeof(int)-1)/sizeof(int))
-
 #define MSG_SIZE 8
 #define MSG_COUNT 100
+
+typedef struct myMsg
+{
+  char header[CmiMsgHeaderSizeBytes];
+  int payload[MSG_SIZE];
+} *message;
 
 CpmInvokable bigmsg_stop()
 {
@@ -21,22 +24,22 @@ CpmInvokable bigmsg_stop()
 void bigmsg_handler(void *vmsg)
 {
   int i, next;
-  int *msg = (int *)vmsg;
+  message msg = (message)vmsg;
   if (CmiMyPe()==1) {
     CpvAccess(recv_count) = 1 + CpvAccess(recv_count);
     if(CpvAccess(recv_count) == MSG_COUNT) {
       CmiPrintf("\nTesting recvd data");
-      for (i=CmiMsgHeaderSizeInts; i<MSG_SIZE; i++) {
-        if (msg[i] != i) {
+      for (i=0; i<MSG_SIZE; i++) {
+        if (msg->payload[i] != i) {
           CmiPrintf("Failure in bigmsg test, data corrupted.\n");
           exit(1);
         }
       }
       CmiFree(msg);
-      msg = (int *)CmiAlloc(MSG_SIZE * sizeof(int));
-      for (i=CmiMsgHeaderSizeInts; i<MSG_SIZE; i++) msg[i] = i;
+      msg = (message)CmiAlloc(sizeof(struct myMsg));
+      for (i=0; i<MSG_SIZE; i++) msg->payload[i] = i;
       CmiSetHandler(msg, CpvAccess(bigmsg_index));
-      CmiSyncSendAndFree(0, MSG_SIZE * sizeof(int), msg);
+      CmiSyncSendAndFree(0, sizeof(struct myMsg), msg);
     } else
       CmiFree(msg);
   } else { //Pe-0 receives ack
@@ -48,7 +51,8 @@ void bigmsg_handler(void *vmsg)
 
 void bigmsg_init()
 {
-  int i, k, *msg;
+  int i, k;
+  struct myMsg *msg;
   if (CmiNumPes()<2) {
     CmiPrintf("note: bigmsg requires at least 2 processors, skipping test.\n");
     CmiPrintf("exiting.\n");
@@ -58,10 +62,10 @@ void bigmsg_init()
     if(CmiMyPe()==0) {
       for(k=0;k<MSG_COUNT;k++) {
 //        CmiPrintf("\nSending msg number #%d\n", k);
-        msg = (int *)CmiAlloc(MSG_SIZE * sizeof(int));
-        for (i=CmiMsgHeaderSizeInts; i<MSG_SIZE; i++) msg[i] = i;
+        msg = (message)CmiAlloc(sizeof(struct myMsg));
+        for (i=0; i<MSG_SIZE; i++) msg->payload[i] = i;
         CmiSetHandler(msg, CpvAccess(bigmsg_index));
-        CmiSyncSendAndFree(1, MSG_SIZE * sizeof(int), msg);
+        CmiSyncSendAndFree(1, sizeof(struct myMsg), msg);
       }
     }
   }
