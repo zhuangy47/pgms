@@ -5,6 +5,7 @@
 
 CpvDeclare(int, bigmsg_index);
 CpvDeclare(int, recv_count);
+CpvDeclare(int, ack_count);
 
 #define MSG_SIZE 8
 #define MSG_COUNT 100
@@ -25,10 +26,10 @@ void bigmsg_handler(void *vmsg)
 {
   int i, next;
   message msg = (message)vmsg;
-  if (CmiMyPe()==1) {
+  if (CmiMyNode()==1) {
     CpvAccess(recv_count) = 1 + CpvAccess(recv_count);
     if(CpvAccess(recv_count) == MSG_COUNT) {
-      CmiPrintf("\nTesting recvd data");
+      CmiPrintf("\nTesting recvd data on rank %d", CmiMyRank());
       for (i=0; i<MSG_SIZE; i++) {
         if (msg->payload[i] != i) {
           CmiPrintf("Failure in bigmsg test, data corrupted.\n");
@@ -43,9 +44,12 @@ void bigmsg_handler(void *vmsg)
     } else
       CmiFree(msg);
   } else { //Pe-0 receives ack
-    CmiPrintf("\nReceived ack on PE-#%d", CmiMyPe());
-    CmiFree(msg);
-    Cpm_bigmsg_stop(CpmSend(CpmALL));
+    CpvAccess(ack_count) = 1 + CpvAccess(ack_count);
+    if(CpvAccess(ack_count) == CmiMyNodeSize()) {
+      CmiPrintf("\nReceived ack on PE-#%d", CmiMyPe());
+      CmiFree(msg);
+      Cpm_bigmsg_stop(CpmSend(CpmALL));
+    }
   }
 }
 
@@ -53,19 +57,21 @@ void bigmsg_init()
 {
   int i, k;
   struct myMsg *msg;
-  if (CmiNumPes()<2) {
-    CmiPrintf("note: bigmsg requires at least 2 processors, skipping test.\n");
+  if (CmiNumNodes()<2) {
+    CmiPrintf("note: this test requires at least 2 nodes, skipping test.\n");
     CmiPrintf("exiting.\n");
     CsdExitScheduler();
     Cpm_bigmsg_stop(CpmSend(CpmALL));
   } else {
-    if(CmiMyPe()==0) {
+    if(CmiMyNode()==0) {
+      CmiPrintf("\nSending msg fron pe%d to pe%d\n",CmiMyPe(), CmiMyNodeSize()+CmiMyRank());
       for(k=0;k<MSG_COUNT;k++) {
 //        CmiPrintf("\nSending msg number #%d\n", k);
         msg = (message)CmiAlloc(sizeof(struct myMsg));
         for (i=0; i<MSG_SIZE; i++) msg->payload[i] = i;
         CmiSetHandler(msg, CpvAccess(bigmsg_index));
-        CmiSyncSendAndFree(1, sizeof(struct myMsg), msg);
+        //Send from my rank on node-0 to same rank on node-1
+        CmiSyncSendAndFree(CmiMyNodeSize()+CmiMyRank(), sizeof(struct myMsg), msg);
       }
     }
   }
@@ -75,6 +81,7 @@ void bigmsg_moduleinit(int argc, char **argv)
 {
   CpvInitialize(int, bigmsg_index);
   CpvInitialize(int, recv_count);
+  CpvInitialize(int, ack_count);
   CpvAccess(bigmsg_index) = CmiRegisterHandler(bigmsg_handler);
   void CpmModuleInit(void);
   void CfutureModuleInit(void);
@@ -93,7 +100,7 @@ void bigmsg_moduleinit(int argc, char **argv)
 
   // Update the argc after runtime parameters are extracted out
   argc = CmiGetArgc(argv);
-  if(CmiMyPe()==0)
+  if(CmiMyPe() < CmiMyNodeSize())
     bigmsg_init();
 }
 

@@ -4,14 +4,10 @@ CHARMC=../../../bin/charmc $(OPTS)
 OBJS = \
   bigmsg.o \
 
-all: megacon
+all: pingack
 
-megacon: $(OBJS)
-	$(CHARMC) -o megacon $(OBJS) -language converse++
-
-megacon.o: megacon.c
-	$(CHARMC) -gen-cpm megacon.c
-	$(CHARMC) megacon.c
+pingack: $(OBJS)
+	$(CHARMC) -o pingack $(OBJS) -language converse++
 
 bigmsg.o: bigmsg.c
 	$(CHARMC) -gen-cpm bigmsg.c
@@ -20,15 +16,15 @@ bigmsg.o: bigmsg.c
 clean:
 	rm -f core *.cpm.h
 	rm -f TAGS *.o
-	rm -f megacon
-	rm -f conv-host charmrun charmrun.exe megacon.exe megacon.pdb megacon.ilk
+	rm -f pingack
+	rm -f conv-host charmrun
 
-test: megacon
-	$(call run, ./megacon +p2 )
+test: pingack
+	$(call run, ./pingack +p2 )
 
-smptest: megacon
-	$(call run, ./megacon +p2 ++ppn 2)
-	$(call run, ./megacon +p4 ++ppn 2)
+smptest: pingack
+	$(call run, ./pingack +p2 ++ppn 2)
+	$(call run, ./pingack +p4 ++ppn 2)
 
-testp: megacon
-	$(call run, ./megacon +p$(P) )
+testp: pingack
+	$(call run, ./pingack +p$(P) )
