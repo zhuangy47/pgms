@@ -26,7 +26,7 @@ void bigmsg_handler(void *vmsg)
 {
   int i, next;
   message msg = (message)vmsg;
-  if (CmiMyNode()==1) {
+  if (CmiMyPe()>=CmiNumPes()/2) {
     CpvAccess(recv_count) = 1 + CpvAccess(recv_count);
     if(CpvAccess(recv_count) == MSG_COUNT) {
       CmiPrintf("\nTesting recvd data on rank %d", CmiMyRank());
@@ -43,9 +43,9 @@ void bigmsg_handler(void *vmsg)
       CmiSyncSendAndFree(0, sizeof(struct myMsg), msg);
     } else
       CmiFree(msg);
-  } else { //Pe-0 receives ack
+  } else { //Pe-0 receives all acks
     CpvAccess(ack_count) = 1 + CpvAccess(ack_count);
-    if(CpvAccess(ack_count) == CmiMyNodeSize()) {
+    if(CpvAccess(ack_count) == CmiNumPes()/2) {
       CmiPrintf("\nReceived ack on PE-#%d", CmiMyPe());
       CmiFree(msg);
       Cpm_bigmsg_stop(CpmSend(CpmALL));
@@ -57,21 +57,23 @@ void bigmsg_init()
 {
   int i, k;
   struct myMsg *msg;
+  int totalpes = CmiNumPes(); //p=num_pes
+  int pes_per_node = totalpes/2; //q=p/2
   if (CmiNumNodes()<2) {
     CmiPrintf("note: this test requires at least 2 nodes, skipping test.\n");
     CmiPrintf("exiting.\n");
     CsdExitScheduler();
     Cpm_bigmsg_stop(CpmSend(CpmALL));
   } else {
-    if(CmiMyNode()==0) {
+    if(CmiMyPe() < pes_per_node) {
       CmiPrintf("\nSending msg fron pe%d to pe%d\n",CmiMyPe(), CmiMyNodeSize()+CmiMyRank());
       for(k=0;k<MSG_COUNT;k++) {
 //        CmiPrintf("\nSending msg number #%d\n", k);
         msg = (message)CmiAlloc(sizeof(struct myMsg));
         for (i=0; i<MSG_SIZE; i++) msg->payload[i] = i;
         CmiSetHandler(msg, CpvAccess(bigmsg_index));
-        //Send from my rank on node-0 to same rank on node-1
-        CmiSyncSendAndFree(CmiMyNodeSize()+CmiMyRank(), sizeof(struct myMsg), msg);
+        //Send from my pe-i on node-0 to q+i on node-1
+        CmiSyncSendAndFree(pes_per_node+CmiMyPe(), sizeof(struct myMsg), msg);
       }
     }
   }
@@ -100,7 +102,7 @@ void bigmsg_moduleinit(int argc, char **argv)
 
   // Update the argc after runtime parameters are extracted out
   argc = CmiGetArgc(argv);
-  if(CmiMyPe() < CmiMyNodeSize())
+  if(CmiMyPe() < CmiNumPes()/2)
     bigmsg_init();
 }
 
