@@ -45,7 +45,7 @@ void bigmsg_handler(void *vmsg)
       msg = (message)CmiAlloc(sizeof(struct myMsg) + sizeof(int) * CpvAccess(msg_size)); //allows for payload size to increased dynamically
       for (i=0; i<CpvAccess(msg_size); i++) msg->payload[i] = i;
       CmiSetHandler(msg, CpvAccess(bigmsg_index));
-      CmiSyncSendAndFree(0, sizeof(struct myMsg), msg);
+      CmiSyncSendAndFree(0, sizeof(struct myMsg) + sizeof(int) * CpvAccess(msg_size), msg);
     } else
       CmiFree(msg);
   } else { //Pe-0 receives all acks
