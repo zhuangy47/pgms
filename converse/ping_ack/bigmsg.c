@@ -3,6 +3,7 @@
 #include <converse.h>
 #include "bigmsg.cpm.h"
 
+CpvDeclare(int, msg_size);
 CpvDeclare(int, bigmsg_index);
 CpvDeclare(int, recv_count);
 CpvDeclare(int, ack_count);
@@ -10,13 +11,14 @@ CpvDeclare(double, total_time);
 CpvDeclare(double, process_time);
 CpvDeclare(double, send_time);
 
-#define MSG_SIZE 8
+// #define MSG_SIZE 8
 #define MSG_COUNT 100
+int msg_size;
 
 typedef struct myMsg
 {
   char header[CmiMsgHeaderSizeBytes];
-  int payload[MSG_SIZE];
+  int payload[0];
 } *message;
 
 CpmInvokable bigmsg_stop()
@@ -33,15 +35,15 @@ void bigmsg_handler(void *vmsg)
     CpvAccess(recv_count) = 1 + CpvAccess(recv_count);
     if(CpvAccess(recv_count) == MSG_COUNT) {
       CmiPrintf("\nTesting recvd data on rank %d", CmiMyRank());
-      for (i=0; i<MSG_SIZE; i++) {
+      for (i=0; i<CpvAccess(msg_size); i++) {
         if (msg->payload[i] != i) {
           CmiPrintf("Failure in bigmsg test, data corrupted.\n");
           exit(1);
-        }
+        } 
       }
       CmiFree(msg);
-      msg = (message)CmiAlloc(sizeof(struct myMsg));
-      for (i=0; i<MSG_SIZE; i++) msg->payload[i] = i;
+      msg = (message)CmiAlloc(sizeof(struct myMsg) + sizeof(int) * CpvAccess(msg_size)); //allows for payload size to increased dynamically
+      for (i=0; i<CpvAccess(msg_size); i++) msg->payload[i] = i;
       CmiSetHandler(msg, CpvAccess(bigmsg_index));
       CmiSyncSendAndFree(0, sizeof(struct myMsg), msg);
     } else
@@ -75,13 +77,13 @@ void bigmsg_init()
       CmiPrintf("\nSending msg fron pe%d to pe%d\n",CmiMyPe(), CmiMyNodeSize()+CmiMyRank());
       for(k=0;k<MSG_COUNT;k++) {
         crt_time = CmiWallTimer();
-        msg = (message)CmiAlloc(sizeof(struct myMsg));
-        for (i=0; i<MSG_SIZE; i++) msg->payload[i] = i;
+        msg = (message)CmiAlloc(sizeof(struct myMsg) + sizeof(int) * CpvAccess(msg_size));
+        for (i=0; i<CpvAccess(msg_size); i++) msg->payload[i] = i;
         CmiSetHandler(msg, CpvAccess(bigmsg_index));
         CpvAccess(process_time) = CmiWallTimer() - crt_time + CpvAccess(process_time);
         start_time = CmiWallTimer();
         //Send from my pe-i on node-0 to q+i on node-1
-        CmiSyncSendAndFree(pes_per_node+CmiMyPe(), sizeof(struct myMsg), msg);
+        CmiSyncSendAndFree(pes_per_node+CmiMyPe(), sizeof(struct myMsg) + sizeof(int) * CpvAccess(msg_size), msg);
         CpvAccess(send_time) = CmiWallTimer() - start_time + CpvAccess(send_time);
       }
     }
@@ -90,6 +92,7 @@ void bigmsg_init()
 
 void bigmsg_moduleinit(int argc, char **argv)
 {
+  CpvInitialize(int, msg_size);
   CpvInitialize(int, bigmsg_index);
   CpvInitialize(int, recv_count);
   CpvInitialize(int, ack_count);
@@ -115,6 +118,13 @@ void bigmsg_moduleinit(int argc, char **argv)
 
   // Update the argc after runtime parameters are extracted out
   argc = CmiGetArgc(argv);
+  if (argc == 2) { 
+    CpvAccess(msg_size) = atoi(argv[1]);
+  }
+  else {
+    if(CmiMyPe() < CmiNumPes()/2)
+      CmiAbort("Usage is ./pingack <msg_size>");
+  }
   if(CmiMyPe() < CmiNumPes()/2)
     bigmsg_init();
 }
